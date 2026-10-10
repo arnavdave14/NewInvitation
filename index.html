@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hritik & Priya - Wedding Invitation</title>
+    <title>Palash &amp; Shruti - Wedding Invitation</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,7 +17,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✨</text></svg>">
+    <link rel="icon" href="./images/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="./images/favicon.ico" type="image/x-icon">
     
     <style>
         body {
@@ -27,9 +28,33 @@
             background-image: url("https://www.transparenttextures.com/patterns/stardust.png");
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        /* Allow typing and selection in form fields */
+        input, textarea, select {
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+            user-select: text !important;
+        }
+
+        img {
+            -webkit-user-drag: none;
+            user-drag: none;
         }
         .font-serif { font-family: 'Playfair Display', serif; }
         .font-script { font-family: 'Great Vibes', cursive; }
+        .font-cursive { font-family: 'Great Vibes', cursive; }
+        .font-sans { font-family: 'Inter', sans-serif; }
+        .text-gold { color: #C5A059; }
+        .bg-gold { background-color: #C5A059; }
+        .hover\:bg-gold:hover { background-color: #C5A059; }
+        .text-charcoal { color: #2D2D2D; }
+        .bg-charcoal { background-color: #2D2D2D; }
         
         /* Torn Paper Transitions */
         .torn-paper-top, .torn-paper-bottom {
@@ -143,16 +168,187 @@
         .music-pulse {
             animation: pulse-music 2s infinite;
         }
-        
-        /* Dress Code Badge Animation */
-        .attire-badge {
-            background: linear-gradient(135deg, #ffffff 0%, #f4f1ea 100%);
-        }
+
 
     </style>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body class="antialiased">
+
+    <!-- FIREBASE ACCESS CONTROL GATEKEEPER -->
+    <div id="firebase-gatekeeper" style="position: fixed; inset: 0; background: #1a1a1a; z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #f4f1ea; transition: opacity 0.5s ease;">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#d5cbb3] mb-4" id="fb-loader"></div>
+        <p id="fb-status-msg" class="font-serif text-xl tracking-wider text-[#d5cbb3]">Verifying Invitation...</p>
+    </div>
+
+    <!-- FIREBASE INIT SCRIPT -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+        // Configuration is lightly obfuscated to prevent casual inspection
+        const _k = [
+            "AIzaSyAeY3hKnUXWhDYAuQkg4Y7VU-RQUZXZGBg",
+            "inxfinia-invitations.firebaseapp.com",
+            "inxfinia-invitations",
+            "inxfinia-invitations.firebasestorage.app",
+            "631179433067",
+            "1:631179433067:web:ac86055a92d5c9cec28d2e"
+        ];
+
+        const INVITATION_ID = "palash_shruti_1";
+
+        function setupWishes(db) {
+            const wishesRef = collection(db, "invitations", INVITATION_ID, "wishes");
+            const q = query(wishesRef, orderBy("timestamp", "desc"));
+            
+            // 1. Realtime Listener
+            onSnapshot(q, (snapshot) => {
+                const container = document.getElementById('wishes-container');
+                if(!container) return;
+                
+                if (snapshot.empty) {
+                    addDoc(wishesRef, {
+                        name: "inXfinia",
+                        wish: "Wishing you both a lifetime of love, joy, and endless beautiful moments. Welcome to your forever! ✨",
+                        timestamp: serverTimestamp(),
+                        likes: 100
+                    });
+                    return;
+                }
+
+                container.innerHTML = '';
+                snapshot.forEach((docSnapshot) => {
+                    const data = docSnapshot.data();
+                    const timeString = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleDateString() : 'Just now';
+                    const newWish = document.createElement('div');
+                    newWish.className = 'pb-4 border-b border-[#e2dcd0]/30';
+                    newWish.innerHTML = `
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-sans font-bold text-sm text-[#2d2d2d]">${data.name}</h4>
+                            <span class="font-sans text-[10px] text-gray-400">${timeString}</span>
+                        </div>
+                        <p class="font-serif italic text-gray-600 text-sm mb-3">"${data.wish}"</p>
+                        <button class="like-btn flex items-center gap-1 text-xs transition-colors ${data.likes > 0 ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}">
+                            <i class="${data.likes > 0 ? 'fas text-red-500' : 'far'} fa-heart"></i>
+                            <span class="like-count">${data.likes || 0}</span>
+                        </button>
+                    `;
+                    
+                    const likeBtn = newWish.querySelector('.like-btn');
+                    likeBtn.onclick = async () => {
+                        // Visual update instantly
+                        const icon = likeBtn.querySelector('i');
+                        icon.classList.remove('far');
+                        icon.classList.add('fas', 'text-red-500');
+                        likeBtn.classList.remove('text-gray-400');
+                        likeBtn.classList.add('text-red-500');
+                        
+                        // Disable multi-clicks
+                        likeBtn.onclick = null;
+                        
+                        // Update in Firestore
+                        try {
+                            const wishDocRef = doc(db, "invitations", INVITATION_ID, "wishes", docSnapshot.id);
+                            await updateDoc(wishDocRef, {
+                                likes: increment(1)
+                            });
+                        } catch (err) {
+                            console.error("Error liking wish", err);
+                        }
+                    };
+
+                    container.appendChild(newWish);
+                });
+            });
+
+            // 2. Override Submit
+            const rsvpForm = document.getElementById('rsvp-form');
+            if (rsvpForm) {
+                // Remove original onsubmit attribute so this takes precedence
+                rsvpForm.removeAttribute('onsubmit');
+                rsvpForm.onsubmit = async (e) => {
+                    e.preventDefault();
+                    const name = document.getElementById('rsvp-name').value;
+                    const wish = document.getElementById('rsvp-wish').value;
+                    
+                    if(wish.trim() !== '') {
+                        const btn = rsvpForm.querySelector('button[type="submit"]');
+                        const origText = btn.innerText;
+                        btn.innerText = "Sending...";
+                        try {
+                            await addDoc(wishesRef, {
+                                name: name,
+                                wish: wish,
+                                timestamp: serverTimestamp(),
+                                likes: 0
+                            });
+                            if (window.confetti) {
+                                confetti({ particleCount: 100, spread: 70, origin: { y: 0.8 }, colors: ['#ff0000', '#d5cbb3'] });
+                            }
+                            alert('Thank you! Your RSVP and wishes have been sent successfully.');
+                            rsvpForm.reset();
+                        } catch(err) {
+                            console.error(err);
+                            alert("Error sending wish.");
+                        }
+                        btn.innerText = origText;
+                    }
+                };
+            }
+        }
+
+        async function verifyAccess() {
+            const gatekeeper = document.getElementById('firebase-gatekeeper');
+            const statusMsg = document.getElementById('fb-status-msg');
+            const loader = document.getElementById('fb-loader');
+
+            try {
+                // Initialize
+                const firebaseConfig = {
+                    apiKey: _k[0],
+                    authDomain: _k[1],
+                    projectId: _k[2],
+                    storageBucket: _k[3],
+                    messagingSenderId: _k[4],
+                    appId: _k[5]
+                };
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+
+                const docRef = doc(db, "invitations", INVITATION_ID);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data.isActive === true) {
+                        setupWishes(db);
+                        gatekeeper.style.opacity = '0';
+                        setTimeout(() => gatekeeper.remove(), 500);
+                        return;
+                    }
+                } else {
+                    // Document doesn't exist yet!
+                    loader.style.display = 'none';
+                    statusMsg.innerHTML = "Database record not found.<br><span class='text-sm text-gray-500'>Did you create the document '" + INVITATION_ID + "' in Firestore?</span>";
+                    statusMsg.classList.add("text-center");
+                    return;
+                }
+                
+                loader.style.display = 'none';
+                statusMsg.innerHTML = "This invitation is currently <span class='text-red-500 font-bold'>Inactive</span>.<br><span class='text-sm text-gray-500'>Please contact InXfinia for support.</span>";
+                statusMsg.classList.add("text-center");
+
+            } catch (error) {
+                console.error("Verification failed:", error);
+                loader.style.display = 'none';
+                statusMsg.innerHTML = "Error verifying invitation status.<br><span class='text-sm text-red-400'>" + error.message + "</span>";
+                statusMsg.classList.add("text-center");
+            }
+        }
+
+        verifyAccess();
+    </script>
 
 <!-- Lightbox -->
 <div id="lightbox" class="fixed inset-0 bg-black/95 z-[200] hidden flex-col items-center justify-center opacity-0 transition-opacity duration-300">
@@ -173,89 +369,138 @@
 <!-- Loading Overlay (Image-style Envelope) -->
 <style>
     .env-wrapper {
-        position: relative; width: 360px; height: 240px;
-        cursor: pointer; transition: transform 0.3s ease;
-        margin-bottom: 2rem;
+        position: relative;
+        width: 330px;
+        max-width: 85vw;
+        aspect-ratio: 360 / 240;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+        margin-bottom: 1.5rem;
+    }
+    @media (min-width: 640px) {
+        .env-wrapper {
+            width: 360px;
+            margin-bottom: 2rem;
+        }
     }
     .env-wrapper:hover { transform: scale(1.02); }
     
     .env-paper {
-        position: absolute; top: 10px; left: 10px;
-        width: 340px; height: 210px;
-        background: #fcfbf9; z-index: 2;
-        display: flex; align-items: center; justify-content: center;
+        position: absolute;
+        top: 4%;
+        left: 3%;
+        right: 3%;
+        bottom: 4%;
+        background: #fcfbf9;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         transition: transform 0.9s cubic-bezier(0.4, 0, 0.2, 1) 0.3s;
         box-shadow: 0 0 15px rgba(0,0,0,0.15);
+        padding: 6px;
     }
     
     .env-front {
-        position: absolute; inset: 0; z-index: 3;
+        position: absolute;
+        inset: 0;
+        z-index: 3;
         pointer-events: none;
     }
     
     .env-flap {
-        position: absolute; top: 0; left: 0;
-        width: 100%; height: 180px;
-        transform-origin: top; z-index: 4;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 75%;
+        transform-origin: top;
+        z-index: 4;
         transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
         filter: drop-shadow(0 10px 15px rgba(0,0,0,0.4));
     }
     
     .env-wax {
-        position: absolute; top: 125px; left: 50%; transform: translateX(-50%);
-        width: 60px; height: 60px;
+        position: absolute;
+        top: 52%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 52px;
+        height: 52px;
         background: radial-gradient(circle, #eab308 0%, #a16207 100%);
-        border-radius: 50%; z-index: 5;
+        border-radius: 50%;
+        z-index: 5;
         box-shadow: 0 4px 15px rgba(0,0,0,0.6), inset 0 2px 5px rgba(255,255,255,0.4);
-        display: flex; align-items: center; justify-content: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         border: 2px solid #ca8a04;
-        transition: opacity 0.3s ease;
+        transition: opacity 0.3s ease, transform 0.2s ease;
+        cursor: pointer;
+    }
+    .env-wax:hover {
+        transform: translate(-50%, -50%) scale(1.05);
+    }
+    @media (min-width: 640px) {
+        .env-wax {
+            width: 60px;
+            height: 60px;
+        }
     }
     
     .env-open .env-flap { transform: rotateX(180deg); z-index: 1; }
-    .env-open .env-paper { transform: translateY(-160px); z-index: 2; }
+    .env-open .env-paper { transform: translateY(-60%); z-index: 2; }
     .env-open .env-wax { opacity: 0; }
 </style>
 
-<div id="loader" class="fixed inset-0 bg-[#f8f7f5] z-[100] flex flex-col items-center justify-center transition-opacity duration-1000">
-    <div class="font-serif text-[#2d2d2d]/60 text-[9px] md:text-[11px] tracking-[0.4em] uppercase mb-4 text-center">Where love begins, forever follows</div>
-    <div class="font-script text-6xl md:text-8xl text-[#2d2d2d] mb-12 drop-shadow-sm">Hritik <span class="text-[#d5cbb3] text-4xl md:text-5xl mx-2">&amp;</span> Priya</div>
+<div id="loader" class="fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center p-4 transition-opacity duration-1000 overflow-hidden">
+    <!-- Cinematic Blurred Background like Ammar & Mariya -->
+    <div class="absolute inset-0 bg-cover bg-center opacity-30 blur-sm scale-105 pointer-events-none" style="background-image: url('https://images.pexels.com/photos/1045541/pexels-photo-1045541.jpeg?auto=compress&cs=tinysrgb&w=1920');"></div>
+    <div class="absolute inset-0 bg-black/40 pointer-events-none"></div>
     
-    <div class="env-wrapper" id="envelope">
-        <!-- Back -->
-        <div class="absolute inset-0 bg-[#e0d8c3] rounded shadow-2xl"></div>
+    <div class="relative z-10 flex flex-col items-center justify-center w-full">
+        <div class="font-montserrat text-white/80 text-[10px] md:text-xs tracking-[0.4em] uppercase mb-3 text-center">Where love begins, forever follows</div>
+        <div class="font-script text-5xl sm:text-6xl md:text-7xl text-white mb-6 drop-shadow-md text-center">
+            Palash <span class="text-[#d5cbb3] text-3xl sm:text-4xl md:text-5xl mx-2">&amp;</span> Shruti
+        </div>
         
-        <!-- Paper -->
-        <div class="env-paper">
-            <div class="w-[310px] h-[180px] border border-[#d5cbb3] flex flex-col items-center justify-center bg-white shadow-inner">
-                <div class="font-serif text-[#d5cbb3] tracking-[0.4em] text-xs font-bold uppercase mb-4">You're Invited</div>
-                <div class="font-script text-4xl text-[#2d2d2d]">Hritik & Priya</div>
+        <div class="env-wrapper" id="envelope">
+            <!-- Back -->
+            <div class="absolute inset-0 bg-[#e0d8c3] rounded shadow-2xl"></div>
+            
+            <!-- Paper -->
+            <div class="env-paper">
+                <div class="w-full h-full border border-[#d5cbb3] flex flex-col items-center justify-center bg-white shadow-inner p-3">
+                    <div class="font-serif text-[#d5cbb3] tracking-[0.4em] text-[10px] sm:text-xs font-bold uppercase mb-2 sm:mb-3">You're Invited</div>
+                    <div class="font-script text-2xl sm:text-3xl md:text-4xl text-[#2d2d2d]">Palash &amp; Shruti</div>
+                    <div class="text-[8px] sm:text-[9px] font-montserrat tracking-[0.25em] text-[#2d2d2d]/60 uppercase mt-2 font-medium">25 &amp; 26 Nov 2026</div>
+                </div>
+            </div>
+            
+            <!-- Front Flaps -->
+            <div class="env-front">
+               <svg viewBox="0 0 360 240" class="w-full h-full drop-shadow-2xl">
+                   <path d="M 0 0 L 180 140 L 0 240 Z" fill="#f4eee6"/>
+                   <path d="M 360 0 L 180 140 L 360 240 Z" fill="#f4eee6"/>
+                   <path d="M 0 240 L 180 120 L 360 240 Z" fill="#e8dcc4"/>
+               </svg>
+            </div>
+            
+            <!-- Top Flap -->
+            <div class="env-flap">
+               <svg viewBox="0 0 360 180" class="w-full h-full">
+                   <path d="M 0 0 L 360 0 L 360 20 C 270 90, 220 130, 180 150 C 140 130, 90 90, 0 20 Z" fill="#d4c5a9"/>
+               </svg>
+            </div>
+            
+            <!-- Wax Seal (Minimal Heart) -->
+            <div class="env-wax" title="Click to Open">
+                <i class="fas fa-heart text-white/80 text-lg sm:text-xl drop-shadow-md"></i>
             </div>
         </div>
         
-        <!-- Front Flaps -->
-        <div class="env-front">
-           <svg viewBox="0 0 360 240" class="w-full h-full drop-shadow-2xl">
-               <path d="M 0 0 L 180 140 L 0 240 Z" fill="#f4eee6"/>
-               <path d="M 360 0 L 180 140 L 360 240 Z" fill="#f4eee6"/>
-               <path d="M 0 240 L 180 120 L 360 240 Z" fill="#e8dcc4"/>
-           </svg>
-        </div>
-        
-        <!-- Top Flap -->
-        <div class="env-flap">
-           <svg viewBox="0 0 360 180" class="w-full h-full">
-               <path d="M 0 0 L 360 0 L 360 20 C 270 90, 220 130, 180 150 C 140 130, 90 90, 0 20 Z" fill="#d4c5a9"/>
-           </svg>
-        </div>
-        
-        <!-- Wax Seal -->
-        <div class="env-wax">
-            <i class="fab fa-pagelines text-white/60 text-2xl drop-shadow-md"></i>
-        </div>
+        <div class="font-montserrat text-white/70 text-[11px] tracking-[0.4em] uppercase animate-pulse mt-6 sm:mt-8 cursor-pointer drop-shadow-md" id="loader-text">Tap to Open</div>
     </div>
-    
-    <div class="font-montserrat text-[10px] text-[#2d2d2d]/50 tracking-[0.4em] uppercase animate-pulse mt-8" id="loader-text">Tap to Open</div>
 </div>
 
 <div class="w-full relative overflow-hidden" id="main-content">
@@ -263,22 +508,24 @@
     <!-- Hero Section -->
     <div class="relative h-[100dvh] w-full overflow-hidden" id="hero-section">
         <div class="absolute inset-0 bg-cover bg-center parallax-hero w-[110%] h-[110%] -left-[5%] -top-[5%]" 
-             style="background-image: url('assets/images/hero_arch_udaipur_1791302807396.jpg');" id="hero-bg"></div>
+             style="background-image: url('assets/images/user_photos/photo_02.jpeg');" id="hero-bg"></div>
         
-        <div class="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-[#1a1a1a]"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-[#1a1a1a]"></div>
         
         <div class="absolute inset-0 flex flex-col items-center justify-center text-white z-10 px-6 mt-10">
-            <div class="hero-elem font-script text-5xl md:text-6xl text-[#d5cbb3] mb-12 opacity-0 translate-y-4 glow-text">H &amp; P</div>
+            <div class="hero-elem font-script text-5xl md:text-6xl text-[#d5cbb3] mb-12 opacity-0 translate-y-4 glow-text">P &amp; S</div>
             <div class="hero-elem font-montserrat text-[10px] md:text-xs tracking-[0.4em] uppercase text-gray-300 mb-6 opacity-0 translate-y-4">The Wedding Of</div>
             
             <div class="flex flex-col items-center gap-2 md:gap-4 w-full">
-                <h1 class="hero-name font-serif text-[56px] md:text-8xl tracking-[0.15em] text-white leading-none opacity-0 translate-y-8 text-shadow-lg">HRITIK</h1>
+                <h1 class="hero-name font-serif text-[52px] sm:text-6xl md:text-8xl tracking-[0.15em] text-white leading-none opacity-0 translate-y-8 text-shadow-lg">PALASH</h1>
                 <div class="hero-name font-script text-5xl md:text-6xl text-[#d5cbb3] my-2 md:my-0 opacity-0 scale-50 glow-text">and</div>
-                <h1 class="hero-name font-serif text-[56px] md:text-8xl tracking-[0.15em] text-white leading-none opacity-0 translate-y-8 text-shadow-lg">PRIYA</h1>
+                <h1 class="hero-name font-serif text-[52px] sm:text-6xl md:text-8xl tracking-[0.15em] text-white leading-none opacity-0 translate-y-8 text-shadow-lg">SHRUTI</h1>
             </div>
             
-            <div class="hero-elem mt-12 w-20 h-px bg-gradient-to-r from-transparent via-[#d5cbb3] to-transparent opacity-0"></div>
-            <div class="hero-elem mt-8 font-montserrat text-[9px] md:text-sm tracking-[0.3em] uppercase text-gray-300 text-center leading-loose opacity-0">A Journey Of Love Begins</div>
+            <div class="hero-elem mt-10 w-20 h-px bg-gradient-to-r from-transparent via-[#d5cbb3] to-transparent opacity-0"></div>
+            <div class="hero-elem mt-6 font-montserrat text-[9px] md:text-sm tracking-[0.3em] uppercase text-gray-300 text-center leading-loose opacity-0">
+                25 &amp; 26 November 2026 • Vitthal Rukhmani
+            </div>
         </div>
         
         <div class="hero-elem absolute bottom-10 left-0 right-0 text-center text-white z-10 flex flex-col items-center opacity-0 animate-float">
@@ -306,14 +553,49 @@
                 as we begin a new chapter together.
             </p>
             
-            <div class="relative w-full h-[300px] md:h-[500px] mb-14 rounded-xl shadow-[0_25px_50px_rgba(0,0,0,0.15)] overflow-hidden border-8 border-white cursor-pointer group gs-reveal-scale">
-                <img src="assets/images/story_conversation_1791302947961.jpg" class="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110">
-                <div class="absolute inset-0 bg-black/30 flex flex-col items-center justify-center text-white transition-colors group-hover:bg-black/10">
-                    <div class="w-16 h-16 bg-white/30 rounded-full flex items-center justify-center backdrop-blur-md mb-4 border border-white/60 group-hover:scale-110 group-hover:bg-white/40 transition-all duration-500 shadow-[0_0_20px_rgba(255,255,255,0.5)]">
-                        <i class="fas fa-play ml-1 text-xl drop-shadow-md"></i>
-                    </div>
-                    <div class="text-[10px] md:text-sm tracking-[0.3em] uppercase font-bold drop-shadow-lg">A Film Of Our Love Story</div>
+            <!-- 3. TOWARDS OUR HAPPY DAY & SCRATCH COUNTDOWN -->
+            <div class="py-12 md:py-16 px-4 text-center max-w-4xl mx-auto gs-reveal">
+                <div class="mb-12 text-center">
+                    <h2 class="font-cursive text-5xl md:text-6xl text-gold mb-2">Towards Our Happy Day</h2>
+                    <div class="w-24 h-px bg-charcoal mx-auto mt-4 mb-8"></div>
+                    <p class="font-serif italic text-xl md:text-2xl text-gray-500 leading-relaxed max-w-2xl mx-auto">
+                        "Love is not just an emotion; it's an endless adventure. Come let's celebrate as we embark on ours."
+                    </p>
                 </div>
+
+                <!-- Scratch Canvas over Countdown -->
+                <div class="relative w-full max-w-2xl mx-auto h-[180px] md:h-[200px] flex items-center justify-center rounded-xl overflow-hidden shadow-2xl bg-white border-4 border-white group mb-12">
+                    <!-- Countdown Timer (Hidden underneath canvas) -->
+                    <div id="countdown-content" class="absolute inset-0 flex justify-center items-center gap-4 md:gap-8 bg-white z-0 px-2 select-none">
+                        <div class="flex flex-col items-center">
+                            <div id="days" class="font-serif text-4xl md:text-6xl text-charcoal">00</div>
+                            <div class="font-sans text-[10px] md:text-xs uppercase tracking-widest text-gray-500 mt-2">Days</div>
+                        </div>
+                        <div class="font-serif text-3xl md:text-6xl text-gray-300">:</div>
+                        <div class="flex flex-col items-center">
+                            <div id="hours" class="font-serif text-4xl md:text-6xl text-charcoal">00</div>
+                            <div class="font-sans text-[10px] md:text-xs uppercase tracking-widest text-gray-500 mt-2">Hours</div>
+                        </div>
+                        <div class="font-serif text-3xl md:text-6xl text-gray-300">:</div>
+                        <div class="flex flex-col items-center">
+                            <div id="mins" class="font-serif text-4xl md:text-6xl text-charcoal">00</div>
+                            <div class="font-sans text-[10px] md:text-xs uppercase tracking-widest text-gray-500 mt-2">Mins</div>
+                        </div>
+                        <div class="font-serif text-3xl md:text-6xl text-gray-300">:</div>
+                        <div class="flex flex-col items-center">
+                            <div id="secs" class="font-serif text-4xl md:text-6xl text-charcoal">00</div>
+                            <div class="font-sans text-[10px] md:text-xs uppercase tracking-widest text-gray-500 mt-2">Secs</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Canvas layer to scratch -->
+                    <canvas id="scratch-countdown" class="absolute inset-0 w-full h-full z-10 cursor-crosshair"></canvas>
+                </div>
+
+                <!-- Clickable Save the Date (Google Calendar Link) -->
+                <a id="save-the-date-btn" target="_blank" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Wedding+of+Palash+%26+Shruti&dates=20261125T023000Z/20261126T183000Z&details=Wedding+Celebration+of+Palash+Purohit+and+Shruti+Joshi+at+Vitthal+Rukhmani&location=Vitthal+Rukhmani" class="inline-flex items-center gap-3 bg-charcoal text-white font-sans uppercase tracking-widest text-xs py-4 px-8 rounded hover:bg-gold hover:shadow-lg transition-all duration-500 transform hover:-translate-y-1 cursor-pointer opacity-0 pointer-events-none">
+                    <i class="far fa-calendar-plus text-lg"></i> Add to Calendar
+                </a>
             </div>
             
             <div class="font-script text-3xl md:text-5xl text-[#2d2d2d] mb-6 gs-reveal">Some stories are written in the stars</div>
@@ -341,21 +623,21 @@
                 
                 <div class="w-full max-w-[280px] md:w-1/3 flex flex-col items-center polaroid-container">
                     <div class="polaroid" data-rotation="-4">
-                        <img src="assets/images/story_conversation_1791302947961.jpg" class="w-full h-56 md:h-64 object-cover filter grayscale-[15%]">
+                        <img src="assets/images/user_photos/photo_03.jpeg" class="w-full h-56 md:h-64 object-cover">
                         <div class="font-script text-[28px] md:text-3xl mt-5 text-[#2d2d2d] leading-[1.2] text-center px-2">It started<br>with a conversation...</div>
                     </div>
                 </div>
 
                 <div class="w-full max-w-[280px] md:w-1/3 flex flex-col items-center md:mt-20 polaroid-container">
                     <div class="polaroid" data-rotation="3">
-                        <img src="assets/images/story_sofa_dog_1791302979521.jpg" class="w-full h-56 md:h-64 object-cover filter grayscale-[15%]">
+                        <img src="assets/images/user_photos/photo_06.jpeg" class="w-full h-56 md:h-64 object-cover">
                         <div class="font-script text-[28px] md:text-3xl mt-5 text-[#2d2d2d] leading-[1.2] text-center px-2">Friendship turned<br>into something more...</div>
                     </div>
                 </div>
 
                 <div class="w-full max-w-[280px] md:w-1/3 flex flex-col items-center polaroid-container">
                     <div class="polaroid" data-rotation="-2">
-                        <img src="assets/images/story_forever_1791303020877.jpg" class="w-full h-56 md:h-64 object-cover filter grayscale-[15%]">
+                        <img src="assets/images/user_photos/photo_12.jpeg" class="w-full h-56 md:h-64 object-cover">
                         <div class="font-script text-[28px] md:text-3xl mt-5 text-[#2d2d2d] leading-[1.2] text-center px-2">And here we are,<br>ready for forever...</div>
                     </div>
                 </div>
@@ -378,19 +660,29 @@
 
         <div class="marquee-container shadow-[0_15px_50px_rgba(0,0,0,0.9)] gs-reveal-scale">
             <div class="marquee-content">
-                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/moments_lakeside_walk_1791303060868.jpg"></div>
-                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/couple_love_film_1791302875123.jpg"></div>
-                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/watercolor_palace_1791302910066.jpg"></div>
-                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/moments_twilight_terrace_1791303097520.jpg"></div>
-                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/hero_arch_udaipur_1791302807396.jpg"></div>
-                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/story_forever_1791303020877.jpg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_01.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_04.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_05.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_08.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_10.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_13.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_14.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_16.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_07.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_11.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_15.jpeg"></div>
                 
-                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/moments_lakeside_walk_1791303060868.jpg"></div>
-                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/couple_love_film_1791302875123.jpg"></div>
-                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/watercolor_palace_1791302910066.jpg"></div>
-                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/moments_twilight_terrace_1791303097520.jpg"></div>
-                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/hero_arch_udaipur_1791302807396.jpg"></div>
-                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/story_forever_1791303020877.jpg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_01.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_04.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_05.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_08.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_10.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_13.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_14.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_16.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_07.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_11.jpeg"></div>
+                <div class="film-frame cursor-pointer"><img class="gallery-img" src="assets/images/user_photos/photo_15.jpeg"></div>
             </div>
         </div>
 
@@ -400,127 +692,290 @@
         </div>
     </div>
 
-    <!-- 03 The Celebration (with merged Dress Code) -->
+    <!-- 03 The Celebration (Itinerary & Ceremonies) -->
     <div class="torn-paper-top"></div>
     <div class="paper-bg py-24 md:py-32 relative">
         <div class="container mx-auto px-6 max-w-6xl">
             
-            <div class="text-center mb-20 gs-reveal">
+            <div class="text-center mb-16 gs-reveal">
                 <div class="flex items-center justify-center gap-4 mb-4">
                     <div class="w-10 h-px bg-[#d5cbb3]"></div>
                     <div class="font-serif text-sm text-[#2d2d2d]/40">03</div>
                     <div class="w-10 h-px bg-[#d5cbb3]"></div>
                 </div>
-                <h3 class="font-serif text-[32px] md:text-4xl tracking-[0.2em] text-[#2d2d2d] mb-6 font-bold">THE CELEBRATION</h3>
-                <p class="text-[11px] md:text-sm text-[#2d2d2d]/60 italic font-medium font-serif">Join us for a weekend of love, tradition and togetherness</p>
+                <h3 class="font-serif text-[32px] md:text-4xl tracking-[0.2em] text-[#2d2d2d] mb-4 font-bold">THE CELEBRATION</h3>
+                <p class="text-[11px] md:text-sm text-[#2d2d2d]/60 italic font-medium font-serif">Join us for two days of love, sacred traditions &amp; joyful celebrations</p>
+                <div class="inline-flex items-center gap-2 mt-4 px-4 py-1.5 rounded-full bg-[#f8f7f5] border border-[#d5cbb3]/40 text-[9px] md:text-[10px] tracking-[0.25em] uppercase font-bold text-[#2d2d2d]/70">
+                    <i class="fas fa-map-marker-alt text-[#d5cbb3]"></i> Location: Vitthal Rukhmani
+                </div>
             </div>
 
-            <!-- Beautiful Arched Event Cards -->
-            <div class="flex flex-col md:flex-row md:flex-wrap justify-center gap-24 md:gap-12 mb-10">
-                
-                <!-- Mehendi -->
-                <div class="w-full md:w-[calc(33.33%-2rem)] max-w-[340px] mx-auto event-card-gsap relative group">
-                    <div class="h-[360px] w-full relative z-0">
-                        <div class="w-full h-full rounded-t-[160px] overflow-hidden border-[6px] border-white shadow-md">
-                            <img src="assets/images/event_mehendi_1791303139567.jpg" class="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110">
-                        </div>
+            <!-- DAY 1: 25 NOVEMBER 2026 -->
+            <div class="mb-20">
+                <div class="flex items-center justify-center gap-3 mb-10 gs-reveal">
+                    <span class="w-12 h-px bg-gradient-to-r from-transparent to-[#d5cbb3]"></span>
+                    <div class="text-center">
+                        <span class="font-serif text-xs md:text-sm tracking-[0.3em] uppercase text-[#d5cbb3] font-bold block">Day 01</span>
+                        <h4 class="font-serif text-2xl md:text-3xl text-[#2d2d2d] font-bold tracking-wide">25 November 2026</h4>
                     </div>
-                    <div class="bg-[#fcfbf9] rounded-xl px-5 py-5 pb-5 relative z-10 -mt-16 mx-4 shadow-[0_15px_40px_rgba(0,0,0,0.1)] border border-transparent group-hover:border-[#d5cbb3]/30 flex flex-col items-center transition-all duration-500 group-hover:-translate-y-2">
-                        <i class="fab fa-pagelines text-[#d5cbb3] text-lg mb-2 opacity-70"></i>
-                        <h4 class="font-serif text-xl tracking-[0.2em] mb-1 text-[#2d2d2d] font-bold uppercase">Mehendi</h4>
-                        <div class="w-8 h-[2px] bg-[#d5cbb3] mb-4"></div>
-                        
-                        <div class="flex items-center justify-center gap-4 mb-4">
-                            <div class="text-[46px] font-serif text-[#2d2d2d] leading-none">14</div>
-                            <div class="w-px h-10 bg-[#e2dcd0]"></div>
-                            <div class="text-left flex flex-col justify-center">
-                                <div class="text-[11px] tracking-[0.2em] text-[#2d2d2d] font-bold">FEB 2026</div>
-                                <div class="text-[9px] tracking-[0.2em] text-[#2d2d2d]/50 mt-1">SATURDAY</div>
-                            </div>
-                        </div>
-                        
-                        <div class="w-full bg-[#f8f7f5] rounded-lg py-3 px-2 mb-3 text-[9px] font-montserrat tracking-[0.1em] font-bold uppercase text-[#2d2d2d]/70 flex flex-col gap-2">
-                            <div class="flex items-center justify-center gap-2"><i class="far fa-clock text-[#d5cbb3] text-sm"></i> 11:00 AM ONWARDS</div>
-                            <div class="flex items-center justify-center gap-2"><i class="fas fa-map-marker-alt text-[#d5cbb3] text-sm"></i> GARDEN TERRACE</div>
-                        </div>
-                        
-                        <!-- Unique Dress Code Tag -->
-                        <div class="w-full attire-badge py-2 px-3 rounded-lg border border-[#e2dcd0]/60 flex flex-col items-center justify-center shadow-inner group-hover:shadow-[0_5px_15px_rgba(213,203,179,0.2)] transition-shadow duration-300">
-                            <div class="text-[8px] uppercase tracking-[0.3em] font-bold text-[#d5cbb3] mb-0">Dress Code</div>
-                            <div class="font-serif text-sm font-semibold text-[#2d2d2d]">Pastels & Florals</div>
-                        </div>
-                    </div>
+                    <span class="w-12 h-px bg-gradient-to-l from-transparent to-[#d5cbb3]"></span>
                 </div>
 
-                <!-- Sangeet -->
-                <div class="w-full md:w-[calc(33.33%-2rem)] max-w-[340px] mx-auto event-card-gsap relative group md:mt-16">
-                    <div class="h-[360px] w-full relative z-0">
-                        <div class="w-full h-full rounded-t-[160px] overflow-hidden border-[6px] border-white shadow-md">
-                            <img src="assets/images/event_sangeet_1791303205384.jpg" class="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110">
-                        </div>
-                    </div>
-                    <div class="bg-[#fcfbf9] rounded-xl px-5 py-5 pb-5 relative z-10 -mt-16 mx-4 shadow-[0_15px_40px_rgba(0,0,0,0.1)] border border-transparent group-hover:border-[#d5cbb3]/30 flex flex-col items-center transition-all duration-500 group-hover:-translate-y-2">
-                        <i class="fab fa-pagelines text-[#d5cbb3] text-lg mb-2 opacity-70"></i>
-                        <h4 class="font-serif text-xl tracking-[0.2em] mb-1 text-[#2d2d2d] font-bold uppercase">Sangeet</h4>
-                        <div class="w-8 h-[2px] bg-[#d5cbb3] mb-4"></div>
-                        
-                        <div class="flex items-center justify-center gap-4 mb-4">
-                            <div class="text-[46px] font-serif text-[#2d2d2d] leading-none">15</div>
-                            <div class="w-px h-10 bg-[#e2dcd0]"></div>
-                            <div class="text-left flex flex-col justify-center">
-                                <div class="text-[11px] tracking-[0.2em] text-[#2d2d2d] font-bold">FEB 2026</div>
-                                <div class="text-[9px] tracking-[0.2em] text-[#2d2d2d]/50 mt-1">SUNDAY</div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    
+                    <!-- 1. Ganesh Poojan -->
+                    <div class="event-card-gsap relative group flex flex-col">
+                        <div class="h-[280px] w-full relative z-0">
+                            <div class="w-full h-full rounded-t-[140px] overflow-hidden border-[5px] border-white shadow-md bg-[#fdfbf7] flex items-center justify-center relative">
+                                <img src="assets/images/user_photos/photo_07.jpeg" class="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end justify-center pb-4">
+                                    <span class="text-white text-xs tracking-[0.3em] uppercase font-serif">Shubh Aarambh</span>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div class="w-full bg-[#f8f7f5] rounded-lg py-3 px-2 mb-3 text-[9px] font-montserrat tracking-[0.1em] font-bold uppercase text-[#2d2d2d]/70 flex flex-col gap-2">
-                            <div class="flex items-center justify-center gap-2"><i class="far fa-clock text-[#d5cbb3] text-sm"></i> 6:00 PM ONWARDS</div>
-                            <div class="flex items-center justify-center gap-2"><i class="fas fa-map-marker-alt text-[#d5cbb3] text-sm"></i> ROYAL BALLROOM</div>
-                        </div>
-                        
-                        <!-- Unique Dress Code Tag -->
-                        <div class="w-full attire-badge py-2 px-3 rounded-lg border border-[#e2dcd0]/60 flex flex-col items-center justify-center shadow-inner group-hover:shadow-[0_5px_15px_rgba(213,203,179,0.2)] transition-shadow duration-300">
-                            <div class="text-[8px] uppercase tracking-[0.3em] font-bold text-[#d5cbb3] mb-0">Dress Code</div>
-                            <div class="font-serif text-sm font-semibold text-[#2d2d2d]">Indo-Western</div>
-                        </div>
-                    </div>
-                </div>
+                        <div class="bg-[#fcfbf9] rounded-xl px-4 py-5 pb-5 relative z-10 -mt-12 mx-2 shadow-[0_12px_35px_rgba(0,0,0,0.08)] border border-[#e2dcd0]/80 group-hover:border-[#d5cbb3] flex flex-col items-center flex-grow transition-all duration-500 group-hover:-translate-y-1">
+                            <i class="fas fa-om text-[#d5cbb3] text-lg mb-1"></i>
+                            <h5 class="font-serif text-lg tracking-[0.15em] mb-1 text-[#2d2d2d] font-bold uppercase text-center">Ganesh Poojan</h5>
+                            <div class="w-8 h-[2px] bg-[#d5cbb3] mb-3"></div>
+                            
+                            <div class="flex items-center justify-center gap-3 mb-3">
+                                <div class="text-[36px] font-serif text-[#2d2d2d] leading-none font-bold">25</div>
+                                <div class="w-px h-8 bg-[#e2dcd0]"></div>
+                                <div class="text-left flex flex-col justify-center">
+                                    <div class="text-[10px] tracking-[0.2em] text-[#2d2d2d] font-bold">NOV 2026</div>
+                                    <div class="text-[8px] tracking-[0.15em] text-[#2d2d2d]/50">SUBHA</div>
+                                </div>
+                            </div>
+                            
+                            <div class="w-full bg-[#f8f7f5] rounded-lg py-2 px-2 text-[9px] font-montserrat tracking-[0.1em] font-bold uppercase text-[#2d2d2d]/70 flex flex-col gap-1.5 text-center mb-3">
+                                <div class="flex items-center justify-center gap-1.5 text-[#2d2d2d]"><i class="far fa-clock text-[#d5cbb3]"></i> 8:00 AM</div>
+                                <div class="flex items-center justify-center gap-1.5"><i class="fas fa-map-marker-alt text-[#d5cbb3]"></i> Vitthal Rukhmani</div>
+                            </div>
 
-                <!-- Wedding -->
-                <div class="w-full md:w-[calc(33.33%-2rem)] max-w-[340px] mx-auto event-card-gsap relative group">
-                    <div class="h-[360px] w-full relative z-0">
-                        <div class="w-full h-full rounded-t-[160px] overflow-hidden border-[6px] border-white shadow-md">
-                            <img src="assets/images/event_wedding_1791303261008.jpg" class="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110">
-                        </div>
-                    </div>
-                    <div class="bg-[#fcfbf9] rounded-xl px-5 py-5 pb-5 relative z-10 -mt-16 mx-4 shadow-[0_15px_40px_rgba(0,0,0,0.1)] border border-transparent group-hover:border-[#d5cbb3]/30 flex flex-col items-center transition-all duration-500 group-hover:-translate-y-2">
-                        <i class="fab fa-pagelines text-[#d5cbb3] text-lg mb-2 opacity-70"></i>
-                        <h4 class="font-serif text-xl tracking-[0.2em] mb-1 text-[#2d2d2d] font-bold uppercase">Wedding</h4>
-                        <div class="w-8 h-[2px] bg-[#d5cbb3] mb-4"></div>
-                        
-                        <div class="flex items-center justify-center gap-4 mb-4">
-                            <div class="text-[46px] font-serif text-[#2d2d2d] leading-none">16</div>
-                            <div class="w-px h-10 bg-[#e2dcd0]"></div>
-                            <div class="text-left flex flex-col justify-center">
-                                <div class="text-[11px] tracking-[0.2em] text-[#2d2d2d] font-bold">FEB 2026</div>
-                                <div class="text-[9px] tracking-[0.2em] text-[#2d2d2d]/50 mt-1">MONDAY</div>
+                            <div class="w-full py-1.5 px-2 rounded-lg border border-[#e2dcd0]/60 text-center mt-auto">
+                                <div class="text-[7px] uppercase tracking-[0.3em] font-bold text-[#d5cbb3]">Ceremony</div>
+                                <div class="font-serif text-xs font-semibold text-[#2d2d2d]">Seeking Divine Blessings</div>
                             </div>
                         </div>
-                        
-                        <div class="w-full bg-[#f8f7f5] rounded-lg py-3 px-2 mb-3 text-[9px] font-montserrat tracking-[0.1em] font-bold uppercase text-[#2d2d2d]/70 flex flex-col gap-2">
-                            <div class="flex items-center justify-center gap-2"><i class="far fa-clock text-[#d5cbb3] text-sm"></i> 7:00 PM ONWARDS</div>
-                            <div class="flex items-center justify-center gap-2"><i class="fas fa-map-marker-alt text-[#d5cbb3] text-sm"></i> THE GRAND LAWN</div>
+                    </div>
+
+                    <!-- 2. Sagai -->
+                    <div class="event-card-gsap relative group flex flex-col">
+                        <div class="h-[280px] w-full relative z-0">
+                            <div class="w-full h-full rounded-t-[140px] overflow-hidden border-[5px] border-white shadow-md">
+                                <img src="assets/images/user_photos/photo_05.jpeg" class="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110">
+                            </div>
                         </div>
-                        
-                        <!-- Unique Dress Code Tag -->
-                        <div class="w-full attire-badge py-2 px-3 rounded-lg border border-[#e2dcd0]/60 flex flex-col items-center justify-center shadow-inner group-hover:shadow-[0_5px_15px_rgba(213,203,179,0.2)] transition-shadow duration-300">
-                            <div class="text-[8px] uppercase tracking-[0.3em] font-bold text-[#d5cbb3] mb-0">Dress Code</div>
-                            <div class="font-serif text-sm font-semibold text-[#2d2d2d]">Traditional</div>
+                        <div class="bg-[#fcfbf9] rounded-xl px-4 py-5 pb-5 relative z-10 -mt-12 mx-2 shadow-[0_12px_35px_rgba(0,0,0,0.08)] border border-[#e2dcd0]/80 group-hover:border-[#d5cbb3] flex flex-col items-center flex-grow transition-all duration-500 group-hover:-translate-y-1">
+                            <i class="far fa-gem text-[#d5cbb3] text-lg mb-1"></i>
+                            <h5 class="font-serif text-lg tracking-[0.15em] mb-1 text-[#2d2d2d] font-bold uppercase text-center">Sagai</h5>
+                            <div class="w-8 h-[2px] bg-[#d5cbb3] mb-3"></div>
+                            
+                            <div class="flex items-center justify-center gap-3 mb-3">
+                                <div class="text-[36px] font-serif text-[#2d2d2d] leading-none font-bold">25</div>
+                                <div class="w-px h-8 bg-[#e2dcd0]"></div>
+                                <div class="text-left flex flex-col justify-center">
+                                    <div class="text-[10px] tracking-[0.2em] text-[#2d2d2d] font-bold">NOV 2026</div>
+                                    <div class="text-[8px] tracking-[0.15em] text-[#2d2d2d]/50">SUBHA</div>
+                                </div>
+                            </div>
+                            
+                            <div class="w-full bg-[#f8f7f5] rounded-lg py-2 px-2 text-[9px] font-montserrat tracking-[0.1em] font-bold uppercase text-[#2d2d2d]/70 flex flex-col gap-1.5 text-center mb-3">
+                                <div class="flex items-center justify-center gap-1.5 text-[#2d2d2d]"><i class="far fa-clock text-[#d5cbb3]"></i> 10:00 AM</div>
+                                <div class="flex items-center justify-center gap-1.5"><i class="fas fa-map-marker-alt text-[#d5cbb3]"></i> Vitthal Rukhmani</div>
+                            </div>
+
+                            <div class="w-full py-1.5 px-2 rounded-lg border border-[#e2dcd0]/60 text-center mt-auto">
+                                <div class="text-[7px] uppercase tracking-[0.3em] font-bold text-[#d5cbb3]">Ring Ceremony</div>
+                                <div class="font-serif text-xs font-semibold text-[#2d2d2d]">Exchange of Rings &amp; Love</div>
+                            </div>
                         </div>
                     </div>
-                </div>
 
+                    <!-- 3. Haldi -->
+                    <div class="event-card-gsap relative group flex flex-col">
+                        <div class="h-[280px] w-full relative z-0">
+                            <div class="w-full h-full rounded-t-[140px] overflow-hidden border-[5px] border-white shadow-md">
+                                <img src="assets/images/user_photos/photo_08.jpeg" class="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110">
+                            </div>
+                        </div>
+                        <div class="bg-[#fcfbf9] rounded-xl px-4 py-5 pb-5 relative z-10 -mt-12 mx-2 shadow-[0_12px_35px_rgba(0,0,0,0.08)] border border-[#e2dcd0]/80 group-hover:border-[#d5cbb3] flex flex-col items-center flex-grow transition-all duration-500 group-hover:-translate-y-1">
+                            <i class="fas fa-sun text-[#eab308] text-lg mb-1"></i>
+                            <h5 class="font-serif text-lg tracking-[0.15em] mb-1 text-[#2d2d2d] font-bold uppercase text-center">Haldi</h5>
+                            <div class="w-8 h-[2px] bg-[#d5cbb3] mb-3"></div>
+                            
+                            <div class="flex items-center justify-center gap-3 mb-3">
+                                <div class="text-[36px] font-serif text-[#2d2d2d] leading-none font-bold">25</div>
+                                <div class="w-px h-8 bg-[#e2dcd0]"></div>
+                                <div class="text-left flex flex-col justify-center">
+                                    <div class="text-[10px] tracking-[0.2em] text-[#2d2d2d] font-bold">NOV 2026</div>
+                                    <div class="text-[8px] tracking-[0.15em] text-[#2d2d2d]/50">DOPAHAR</div>
+                                </div>
+                            </div>
+                            
+                            <div class="w-full bg-[#f8f7f5] rounded-lg py-2 px-2 text-[9px] font-montserrat tracking-[0.1em] font-bold uppercase text-[#2d2d2d]/70 flex flex-col gap-1.5 text-center mb-3">
+                                <div class="flex items-center justify-center gap-1.5 text-[#2d2d2d]"><i class="far fa-clock text-[#d5cbb3]"></i> 2:00 PM (DIN ME)</div>
+                                <div class="flex items-center justify-center gap-1.5"><i class="fas fa-map-marker-alt text-[#d5cbb3]"></i> Vitthal Rukhmani</div>
+                            </div>
+
+                            <div class="w-full py-1.5 px-2 rounded-lg border border-[#e2dcd0]/60 text-center mt-auto">
+                                <div class="text-[7px] uppercase tracking-[0.3em] font-bold text-[#d5cbb3]">Haldi Rasam</div>
+                                <div class="font-serif text-xs font-semibold text-[#2d2d2d]">Turmeric Blessings &amp; Joy</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Bandoli -->
+                    <div class="event-card-gsap relative group flex flex-col">
+                        <div class="h-[280px] w-full relative z-0">
+                            <div class="w-full h-full rounded-t-[140px] overflow-hidden border-[5px] border-white shadow-md">
+                                <img src="assets/images/user_photos/photo_04.jpeg" class="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110">
+                            </div>
+                        </div>
+                        <div class="bg-[#fcfbf9] rounded-xl px-4 py-5 pb-5 relative z-10 -mt-12 mx-2 shadow-[0_12px_35px_rgba(0,0,0,0.08)] border border-[#e2dcd0]/80 group-hover:border-[#d5cbb3] flex flex-col items-center flex-grow transition-all duration-500 group-hover:-translate-y-1">
+                            <i class="fas fa-music text-[#d5cbb3] text-lg mb-1"></i>
+                            <h5 class="font-serif text-lg tracking-[0.15em] mb-1 text-[#2d2d2d] font-bold uppercase text-center">Bandoli</h5>
+                            <div class="w-8 h-[2px] bg-[#d5cbb3] mb-3"></div>
+                            
+                            <div class="flex items-center justify-center gap-3 mb-3">
+                                <div class="text-[36px] font-serif text-[#2d2d2d] leading-none font-bold">25</div>
+                                <div class="w-px h-8 bg-[#e2dcd0]"></div>
+                                <div class="text-left flex flex-col justify-center">
+                                    <div class="text-[10px] tracking-[0.2em] text-[#2d2d2d] font-bold">NOV 2026</div>
+                                    <div class="text-[8px] tracking-[0.15em] text-[#2d2d2d]/50">SHAM KO</div>
+                                </div>
+                            </div>
+                            
+                            <div class="w-full bg-[#f8f7f5] rounded-lg py-2 px-2 text-[9px] font-montserrat tracking-[0.1em] font-bold uppercase text-[#2d2d2d]/70 flex flex-col gap-1.5 text-center mb-3">
+                                <div class="flex items-center justify-center gap-1.5 text-[#2d2d2d]"><i class="far fa-clock text-[#d5cbb3]"></i> 8:00 PM (RAAT ME)</div>
+                                <div class="flex items-center justify-center gap-1.5"><i class="fas fa-map-marker-alt text-[#d5cbb3]"></i> Vitthal Rukhmani</div>
+                            </div>
+
+                            <div class="w-full py-1.5 px-2 rounded-lg border border-[#e2dcd0]/60 text-center mt-auto">
+                                <div class="text-[7px] uppercase tracking-[0.3em] font-bold text-[#d5cbb3]">Festive Celebration</div>
+                                <div class="font-serif text-xs font-semibold text-[#2d2d2d]">Music, Dance &amp; Glamour</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
             </div>
+
+            <!-- DAY 2: 26 NOVEMBER 2026 -->
+            <div>
+                <div class="flex items-center justify-center gap-3 mb-10 gs-reveal">
+                    <span class="w-12 h-px bg-gradient-to-r from-transparent to-[#d5cbb3]"></span>
+                    <div class="text-center">
+                        <span class="font-serif text-xs md:text-sm tracking-[0.3em] uppercase text-[#d5cbb3] font-bold block">Day 02</span>
+                        <h4 class="font-serif text-2xl md:text-3xl text-[#2d2d2d] font-bold tracking-wide">26 November 2026</h4>
+                    </div>
+                    <span class="w-12 h-px bg-gradient-to-l from-transparent to-[#d5cbb3]"></span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                    
+                    <!-- 5. Baarat -->
+                    <div class="event-card-gsap relative group flex flex-col">
+                        <div class="h-[300px] w-full relative z-0">
+                            <div class="w-full h-full rounded-t-[150px] overflow-hidden border-[5px] border-white shadow-md">
+                                <img src="assets/images/user_photos/photo_01.jpeg" class="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110">
+                            </div>
+                        </div>
+                        <div class="bg-[#fcfbf9] rounded-xl px-4 py-5 pb-5 relative z-10 -mt-12 mx-2 shadow-[0_12px_35px_rgba(0,0,0,0.08)] border border-[#e2dcd0]/80 group-hover:border-[#d5cbb3] flex flex-col items-center flex-grow transition-all duration-500 group-hover:-translate-y-1">
+                            <i class="fas fa-drum text-[#d5cbb3] text-lg mb-1"></i>
+                            <h5 class="font-serif text-xl tracking-[0.15em] mb-1 text-[#2d2d2d] font-bold uppercase text-center">Baarat</h5>
+                            <div class="w-8 h-[2px] bg-[#d5cbb3] mb-3"></div>
+                            
+                            <div class="flex items-center justify-center gap-3 mb-3">
+                                <div class="text-[40px] font-serif text-[#2d2d2d] leading-none font-bold">26</div>
+                                <div class="w-px h-9 bg-[#e2dcd0]"></div>
+                                <div class="text-left flex flex-col justify-center">
+                                    <div class="text-[10px] tracking-[0.2em] text-[#2d2d2d] font-bold">NOV 2026</div>
+                                    <div class="text-[8px] tracking-[0.15em] text-[#2d2d2d]/50">SUBHA</div>
+                                </div>
+                            </div>
+                            
+                            <div class="w-full bg-[#f8f7f5] rounded-lg py-2.5 px-2 text-[9px] font-montserrat tracking-[0.1em] font-bold uppercase text-[#2d2d2d]/70 flex flex-col gap-1.5 text-center mb-3">
+                                <div class="flex items-center justify-center gap-1.5 text-[#2d2d2d]"><i class="far fa-clock text-[#d5cbb3]"></i> 8:00 AM (SUBHA)</div>
+                                <div class="flex items-center justify-center gap-1.5"><i class="fas fa-map-marker-alt text-[#d5cbb3]"></i> Vitthal Rukhmani</div>
+                            </div>
+
+                            <div class="w-full py-2 px-2 rounded-lg border border-[#e2dcd0]/60 text-center mt-auto">
+                                <div class="text-[8px] uppercase tracking-[0.3em] font-bold text-[#d5cbb3]">Procession</div>
+                                <div class="font-serif text-xs font-semibold text-[#2d2d2d]">Groom's Grand Arrival</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 6. Lagan (Vivah Sanskar) -->
+                    <div class="event-card-gsap relative group flex flex-col">
+                        <div class="h-[300px] w-full relative z-0">
+                            <div class="w-full h-full rounded-t-[150px] overflow-hidden border-[5px] border-white shadow-md">
+                                <img src="assets/images/user_photos/photo_02.jpeg" class="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110">
+                            </div>
+                        </div>
+                        <div class="bg-[#fcfbf9] rounded-xl px-4 py-5 pb-5 relative z-10 -mt-12 mx-2 shadow-[0_12px_35px_rgba(0,0,0,0.08)] border border-[#e2dcd0]/80 group-hover:border-[#d5cbb3] flex flex-col items-center flex-grow transition-all duration-500 group-hover:-translate-y-1">
+                            <i class="fas fa-ring text-[#d5cbb3] text-lg mb-1"></i>
+                            <h5 class="font-serif text-xl tracking-[0.15em] mb-1 text-[#2d2d2d] font-bold uppercase text-center">Lagan (Vivah)</h5>
+                            <div class="w-8 h-[2px] bg-[#d5cbb3] mb-3"></div>
+                            
+                            <div class="flex items-center justify-center gap-3 mb-3">
+                                <div class="text-[40px] font-serif text-[#2d2d2d] leading-none font-bold">26</div>
+                                <div class="w-px h-9 bg-[#e2dcd0]"></div>
+                                <div class="text-left flex flex-col justify-center">
+                                    <div class="text-[10px] tracking-[0.2em] text-[#2d2d2d] font-bold">NOV 2026</div>
+                                    <div class="text-[8px] tracking-[0.15em] text-[#2d2d2d]/50">SUBHA</div>
+                                </div>
+                            </div>
+                            
+                            <div class="w-full bg-[#f8f7f5] rounded-lg py-2.5 px-2 text-[9px] font-montserrat tracking-[0.1em] font-bold uppercase text-[#2d2d2d]/70 flex flex-col gap-1.5 text-center mb-3">
+                                <div class="flex items-center justify-center gap-1.5 text-[#2d2d2d]"><i class="far fa-clock text-[#d5cbb3]"></i> 10:00 AM (SUBHA)</div>
+                                <div class="flex items-center justify-center gap-1.5"><i class="fas fa-map-marker-alt text-[#d5cbb3]"></i> Vitthal Rukhmani</div>
+                            </div>
+
+                            <div class="w-full py-2 px-2 rounded-lg border border-[#e2dcd0]/60 text-center mt-auto">
+                                <div class="text-[8px] uppercase tracking-[0.3em] font-bold text-[#d5cbb3]">Sacred Vows</div>
+                                <div class="font-serif text-xs font-semibold text-[#2d2d2d]">Traditional Vivah Sanskar &amp; Phere</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 7. Reception -->
+                    <div class="event-card-gsap relative group flex flex-col">
+                        <div class="h-[300px] w-full relative z-0">
+                            <div class="w-full h-full rounded-t-[150px] overflow-hidden border-[5px] border-white shadow-md">
+                                <img src="assets/images/user_photos/photo_14.jpeg" class="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110">
+                            </div>
+                        </div>
+                        <div class="bg-[#fcfbf9] rounded-xl px-4 py-5 pb-5 relative z-10 -mt-12 mx-2 shadow-[0_12px_35px_rgba(0,0,0,0.08)] border border-[#e2dcd0]/80 group-hover:border-[#d5cbb3] flex flex-col items-center flex-grow transition-all duration-500 group-hover:-translate-y-1">
+                            <i class="fas fa-glass-cheers text-[#d5cbb3] text-lg mb-1"></i>
+                            <h5 class="font-serif text-xl tracking-[0.15em] mb-1 text-[#2d2d2d] font-bold uppercase text-center">Reception</h5>
+                            <div class="w-8 h-[2px] bg-[#d5cbb3] mb-3"></div>
+                            
+                            <div class="flex items-center justify-center gap-3 mb-3">
+                                <div class="text-[40px] font-serif text-[#2d2d2d] leading-none font-bold">26</div>
+                                <div class="w-px h-9 bg-[#e2dcd0]"></div>
+                                <div class="text-left flex flex-col justify-center">
+                                    <div class="text-[10px] tracking-[0.2em] text-[#2d2d2d] font-bold">NOV 2026</div>
+                                    <div class="text-[8px] tracking-[0.15em] text-[#2d2d2d]/50">SHAM KO</div>
+                                </div>
+                            </div>
+                            
+                            <div class="w-full bg-[#f8f7f5] rounded-lg py-2.5 px-2 text-[9px] font-montserrat tracking-[0.1em] font-bold uppercase text-[#2d2d2d]/70 flex flex-col gap-1.5 text-center mb-3">
+                                <div class="flex items-center justify-center gap-1.5 text-[#2d2d2d]"><i class="far fa-clock text-[#d5cbb3]"></i> 7:00 PM ONWARDS</div>
+                                <div class="flex items-center justify-center gap-1.5"><i class="fas fa-map-marker-alt text-[#d5cbb3]"></i> Vitthal Rukhmani</div>
+                            </div>
+
+                            <div class="w-full py-2 px-2 rounded-lg border border-[#e2dcd0]/60 text-center mt-auto">
+                                <div class="text-[8px] uppercase tracking-[0.3em] font-bold text-[#d5cbb3]">Evening Celebration</div>
+                                <div class="font-serif text-xs font-semibold text-[#2d2d2d]">Dinner &amp; Felicitations</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
         </div>
     </div>
     <div class="torn-paper-bottom"></div>
@@ -528,7 +983,7 @@
     <!-- Transition Text Block -->
     <div class="relative h-[45vh] md:h-[55vh] w-full -mt-6 z-0 flex flex-col items-center justify-center overflow-hidden">
         <div class="absolute inset-0 bg-[#1a1a1a]"></div>
-        <img src="assets/images/venue_udaivilas_1791303354299.jpg" class="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-luminosity transform scale-125" id="transition-bg">
+        <img src="assets/images/user_photos/photo_14.jpeg" class="absolute inset-0 w-full h-full object-cover opacity-35 mix-blend-luminosity transform scale-125" id="transition-bg">
         <div class="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-transparent to-[#1a1a1a]"></div>
         
         <div class="relative z-10 text-center text-[#f4f1ea] px-4" id="transition-text">
@@ -550,22 +1005,22 @@
                     <div class="w-10 h-px bg-[#d5cbb3]"></div>
                 </div>
                 <h3 class="font-serif text-[32px] md:text-4xl tracking-[0.2em] text-[#2d2d2d] mb-4 font-bold">THE VENUE</h3>
-                <p class="text-[11px] md:text-sm text-[#2d2d2d]/60 italic font-medium font-serif">A beautiful destination for a more beautiful beginning.</p>
+                <p class="text-[11px] md:text-sm text-[#2d2d2d]/60 italic font-medium font-serif">A beautiful destination for a sacred beginning.</p>
             </div>
 
             <div class="bg-[#fcfbf9] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-[#e2dcd0] rounded-xl gs-reveal-scale mx-auto max-w-[400px] md:max-w-2xl">
                 <div class="relative overflow-hidden rounded-lg group">
-                    <img src="assets/images/venue_udaivilas_1791303354299.jpg" class="w-full h-[280px] md:h-[450px] object-cover transition-transform duration-[2s] group-hover:scale-110">
+                    <img src="assets/images/user_photos/photo_07.jpeg" class="w-full h-[280px] md:h-[450px] object-cover transition-transform duration-[2s] group-hover:scale-110">
                 </div>
-                <div class="text-center py-12 relative">
+                <div class="text-center py-10 relative">
                     <div class="absolute -top-12 left-1/2 transform -translate-x-1/2 w-20 h-20 bg-[#2d2d2d] rounded-full flex items-center justify-center border-8 border-[#fcfbf9] shadow-lg" id="map-pin">
                         <i class="fas fa-map-marker-alt text-[#d5cbb3] text-2xl"></i>
                     </div>
                     
-                    <h4 class="font-serif text-xl md:text-2xl tracking-[0.3em] text-[#2d2d2d] mt-4 font-bold">THE OBEROI UDAIVILAS</h4>
-                    <p class="text-[10px] md:text-xs tracking-[0.3em] uppercase text-[#2d2d2d]/60 mt-4 font-semibold">Udaipur, Rajasthan</p>
+                    <h4 class="font-serif text-2xl md:text-3xl tracking-[0.25em] text-[#2d2d2d] mt-4 font-bold uppercase">VITTHAL RUKHMANI</h4>
+                    <p class="text-[10px] md:text-xs tracking-[0.3em] uppercase text-[#2d2d2d]/60 mt-3 font-semibold">The Wedding Venue &amp; Celebrations</p>
                     
-                    <a href="#" class="inline-flex items-center gap-4 mt-10 px-10 py-5 bg-[#1a1a1a] text-[#f4f1ea] text-[10px] md:text-xs tracking-[0.2em] uppercase hover:bg-[#d5cbb3] hover:text-[#1a1a1a] transition-all rounded shadow-md font-semibold transform hover:-translate-y-1 duration-300">
+                    <a href="https://www.google.com/maps/search/?api=1&query=Vitthal+Rukhmani" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-4 mt-8 px-10 py-4 bg-[#1a1a1a] text-[#f4f1ea] text-[10px] md:text-xs tracking-[0.2em] uppercase hover:bg-[#d5cbb3] hover:text-[#1a1a1a] transition-all rounded shadow-md font-semibold transform hover:-translate-y-1 duration-300">
                         GET DIRECTIONS <i class="fas fa-arrow-right"></i>
                     </a>
                 </div>
@@ -573,35 +1028,90 @@
         </div>
     </div>
 
-    <!-- 05 Blessings -->
-    <div class="paper-bg py-20 relative border-t border-[#e2dcd0]/50">
-        <div class="container mx-auto px-6 max-w-4xl text-center gs-reveal">
-            <div class="flex items-center justify-center gap-4 mb-10">
+    <!-- 05 Blessings & Families -->
+    <div class="paper-bg py-20 md:py-28 relative border-t border-[#e2dcd0]/50">
+        <div class="container mx-auto px-6 max-w-5xl text-center gs-reveal">
+            <div class="flex items-center justify-center gap-4 mb-8">
                 <div class="w-10 h-px bg-[#d5cbb3]"></div>
                 <div class="font-serif text-sm text-[#2d2d2d]/40">05</div>
                 <div class="w-10 h-px bg-[#d5cbb3]"></div>
             </div>
-            <h3 class="font-serif text-[32px] md:text-4xl tracking-[0.2em] text-[#2d2d2d] mb-12 font-bold">BLESSINGS</h3>
+            <h3 class="font-serif text-[32px] md:text-4xl tracking-[0.2em] text-[#2d2d2d] mb-4 font-bold">OUR BELOVED FAMILIES</h3>
+            <p class="text-[11px] md:text-sm text-[#2d2d2d]/60 italic font-medium font-serif mb-16">With the divine blessings of our elders and the unconditional love of our parents</p>
             
-            <div class="relative py-8 px-4 md:px-12">
-                <i class="fas fa-quote-left absolute top-0 left-0 text-5xl md:text-6xl text-[#d5cbb3]/40" id="quote-l"></i>
-                <i class="fas fa-quote-right absolute bottom-0 right-0 text-5xl md:text-6xl text-[#d5cbb3]/40" id="quote-r"></i>
-                <p class="font-serif italic text-lg md:text-3xl text-[#2d2d2d] leading-relaxed relative z-10 font-medium">
-                    Your presence and blessings mean the world to us as we embark on this beautiful journey together.
+            <!-- Family Columns -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 text-center">
+                
+                <!-- Groom's Family -->
+                <div class="bg-[#fcfbf9] p-8 md:p-12 rounded-2xl border border-[#e2dcd0] shadow-[0_15px_40px_rgba(0,0,0,0.06)] relative group hover:shadow-[0_20px_50px_rgba(213,203,179,0.25)] transition-all duration-300">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-[#1a1a1a] text-[#d5cbb3] flex items-center justify-center mb-6 shadow-md border border-[#d5cbb3]/40">
+                        <i class="fas fa-crown text-lg"></i>
+                    </div>
+                    <div class="font-serif text-[10px] tracking-[0.35em] uppercase text-[#d5cbb3] font-bold mb-2">Groom's Family</div>
+                    <h4 class="font-serif text-2xl md:text-3xl text-[#2d2d2d] font-bold mb-6">Palash Purohit</h4>
+                    <div class="w-16 h-px bg-[#d5cbb3]/60 mx-auto mb-8"></div>
+
+                    <div class="space-y-6 text-[#2d2d2d]">
+                        <div>
+                            <div class="text-[9px] tracking-[0.3em] uppercase text-[#2d2d2d]/50 font-bold mb-1.5">With Blessings Of Grandparents</div>
+                            <p class="font-serif text-base md:text-lg font-semibold text-[#2d2d2d]">Late Shri Laxminarayan Purohit</p>
+                            <p class="font-serif text-base md:text-lg font-semibold text-[#2d2d2d]/80">&amp; Smt. Amba Bai Purohit</p>
+                        </div>
+
+                        <div class="pt-6 border-t border-[#e2dcd0]/70">
+                            <div class="text-[9px] tracking-[0.3em] uppercase text-[#2d2d2d]/50 font-bold mb-1.5">Beloved Parents</div>
+                            <p class="font-serif text-lg md:text-xl font-bold text-[#2d2d2d]">Shri Kailash Purohit</p>
+                            <p class="font-serif text-base md:text-lg italic text-[#2d2d2d]/80">&amp; Smt. Mamta Purohit</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bride's Family -->
+                <div class="bg-[#fcfbf9] p-8 md:p-12 rounded-2xl border border-[#e2dcd0] shadow-[0_15px_40px_rgba(0,0,0,0.06)] relative group hover:shadow-[0_20px_50px_rgba(213,203,179,0.25)] transition-all duration-300">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-[#1a1a1a] text-[#d5cbb3] flex items-center justify-center mb-6 shadow-md border border-[#d5cbb3]/40">
+                        <i class="fas fa-heart text-lg"></i>
+                    </div>
+                    <div class="font-serif text-[10px] tracking-[0.35em] uppercase text-[#d5cbb3] font-bold mb-2">Bride's Family</div>
+                    <h4 class="font-serif text-2xl md:text-3xl text-[#2d2d2d] font-bold mb-6">Shruti Joshi</h4>
+                    <div class="w-16 h-px bg-[#d5cbb3]/60 mx-auto mb-8"></div>
+
+                    <div class="space-y-6 text-[#2d2d2d]">
+                        <div>
+                            <div class="text-[9px] tracking-[0.3em] uppercase text-[#2d2d2d]/50 font-bold mb-1.5">With Blessings Of Grandparents</div>
+                            <p class="font-serif text-base md:text-lg font-semibold text-[#2d2d2d]">Late Shri Bhanwar Lal Ji Joshi</p>
+                            <p class="font-serif text-base md:text-lg font-semibold text-[#2d2d2d]/80">&amp; Smt. Jamna Joshi</p>
+                        </div>
+
+                        <div class="pt-6 border-t border-[#e2dcd0]/70">
+                            <div class="text-[9px] tracking-[0.3em] uppercase text-[#2d2d2d]/50 font-bold mb-1.5">Beloved Parents</div>
+                            <p class="font-serif text-lg md:text-xl font-bold text-[#2d2d2d]">Shri Hukam Joshi</p>
+                            <p class="font-serif text-base md:text-lg italic text-[#2d2d2d]/80">&amp; Smt. Vaishali Joshi</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Warm blessing quote -->
+            <div class="relative py-10 px-4 md:px-12 mt-16">
+                <i class="fas fa-quote-left absolute top-0 left-0 text-5xl md:text-6xl text-[#d5cbb3]/30" id="quote-l"></i>
+                <i class="fas fa-quote-right absolute bottom-0 right-0 text-5xl md:text-6xl text-[#d5cbb3]/30" id="quote-r"></i>
+                <p class="font-serif italic text-lg md:text-2xl text-[#2d2d2d] leading-relaxed relative z-10 font-medium max-w-3xl mx-auto">
+                    "Your presence, warmth and blessings mean the world to us and our families as we embark on this sacred journey together."
                 </p>
             </div>
         </div>
     </div>
     
-    <div class="relative w-full h-[35vh] overflow-hidden" id="blessings-img">
-        <img src="assets/images/event_wedding_1791303261008.jpg" class="w-full h-full object-cover transform scale-110">
-        <div class="absolute inset-0 bg-gradient-to-t from-[#d5cbb3]/40 to-[#d5cbb3]/10 mix-blend-multiply"></div>
+    <div class="relative w-full h-[40vh] md:h-[50vh] overflow-hidden" id="blessings-img">
+        <img src="assets/images/user_photos/photo_01.jpeg" class="w-full h-full object-cover transform scale-105">
+        <div class="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-transparent to-transparent"></div>
     </div>
     
     <div class="torn-paper-top"></div>
     <div class="paper-bg py-16 text-center relative z-10 border-b border-[#e2dcd0]/50">
-        <p class="text-[11px] md:text-sm tracking-[0.4em] uppercase text-[#2d2d2d] font-bold mb-3 gs-reveal">With Love</p>
-        <p class="text-[11px] md:text-sm tracking-[0.3em] uppercase text-[#2d2d2d]/70 gs-reveal">From Our Families</p>
+        <p class="text-[11px] md:text-sm tracking-[0.4em] uppercase text-[#2d2d2d] font-bold mb-3 gs-reveal">With Love &amp; Respect</p>
+        <p class="text-[11px] md:text-sm tracking-[0.3em] uppercase text-[#2d2d2d]/70 gs-reveal">Purohit &amp; Joshi Families</p>
         <div class="text-[#d5cbb3] mt-8 text-2xl gs-reveal">❖ ❖ ❖</div>
     </div>
 
@@ -615,7 +1125,7 @@
                     <div class="w-10 h-px bg-[#d5cbb3]"></div>
                 </div>
                 <h3 class="font-serif text-[32px] md:text-4xl tracking-[0.2em] text-[#2d2d2d] mb-4 font-bold">WEDDING WISH & RSVP</h3>
-                <p class="text-[11px] md:text-sm text-[#2d2d2d]/60 italic font-medium font-serif">Leave your prayers and confirm your attendance.</p>
+                <p class="text-[11px] md:text-sm text-[#2d2d2d]/60 italic font-medium font-serif">Leave your prayers and wishes for the couple.</p>
             </div>
             
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 text-left">
@@ -632,15 +1142,8 @@
                             <label class="block text-xs uppercase tracking-widest text-[#2d2d2d] font-bold mb-2">Your Wishes</label>
                             <textarea id="rsvp-wish" placeholder="Leave us a message..." rows="3" required class="w-full bg-transparent border-b border-[#d5cbb3]/50 py-3 text-[#2d2d2d] focus:outline-none focus:border-[#d5cbb3] font-montserrat text-sm transition-colors resize-none placeholder:text-[#2d2d2d]/40"></textarea>
                         </div>
-                        <div>
-                            <label class="block text-xs uppercase tracking-widest text-[#2d2d2d] font-bold mb-2">Attendance</label>
-                            <select id="rsvp-attendance" class="w-full bg-transparent border-b border-[#d5cbb3]/50 py-3 text-[#2d2d2d] focus:outline-none focus:border-[#d5cbb3] font-montserrat text-sm transition-colors appearance-none cursor-pointer">
-                                <option>Yes, I will attend</option>
-                                <option>Sorry, I cannot attend</option>
-                            </select>
-                        </div>
                         <button type="submit" class="mt-6 px-10 py-4 bg-[#1a1a1a] text-[#f4f1ea] text-[10px] tracking-[0.2em] uppercase hover:bg-[#d5cbb3] hover:text-[#1a1a1a] transition-all rounded shadow-md font-bold self-center w-full">
-                            Confirm RSVP
+                            Send Wish
                         </button>
                     </form>
                 </div>
@@ -659,7 +1162,7 @@
                         <!-- Wish 1 -->
                         <div class="pb-4 border-b border-[#e2dcd0]/30">
                             <div class="flex justify-between items-start mb-2">
-                                <h4 class="font-bold text-sm text-[#2d2d2d]">Rahul & Priya</h4>
+                                <h4 class="font-bold text-sm text-[#2d2d2d]">Akash &amp; Sneha</h4>
                                 <span class="text-[10px] text-[#2d2d2d]/50">2 days ago</span>
                             </div>
                             <p class="font-serif italic text-[#2d2d2d]/80 text-sm mb-3">"Wishing you both a lifetime of love and happiness! Can't wait for the big day!"</p>
@@ -700,22 +1203,19 @@
     <div class="torn-paper-bottom"></div>
 
     <!-- Footer -->
-    <div class="relative h-screen bg-[#050505] -mt-10 z-0 overflow-hidden flex flex-col justify-end pb-20" id="footer-section">
+    <div class="relative min-h-screen bg-[#050505] -mt-10 z-0 overflow-hidden flex flex-col justify-end pb-24" id="footer-section">
         <!-- Parallax Background -->
         <div class="absolute inset-0" id="footer-parallax">
-            <img src="assets/images/hero_arch_udaipur_1791302807396.jpg" class="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-luminosity transform scale-125" id="footer-bg">
+            <img src="assets/images/user_photos/photo_04.jpeg" class="absolute inset-0 w-full h-full object-cover opacity-35 mix-blend-luminosity transform scale-125" id="footer-bg">
         </div>
         
         <div class="absolute inset-0 bg-gradient-to-b from-[#f4f1ea]/10 via-black/50 to-[#050505]"></div>
-        <div class="absolute inset-0 bg-black/40"></div>
+        <div class="absolute inset-0 bg-black/50"></div>
         
         <div class="relative z-10 w-full flex flex-col items-center justify-center text-[#f4f1ea] px-6 text-center mt-32">
-            <!-- Grand Initials -->
-            <div class="footer-elem font-serif text-[120px] md:text-[200px] text-white/5 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 tracking-[0.1em] font-bold select-none z-0 mix-blend-overlay">H & P</div>
-            
             <!-- Main Content -->
             <div class="relative z-10 flex flex-col items-center">
-                <div class="footer-elem font-montserrat text-[10px] md:text-sm tracking-[0.5em] uppercase text-[#d5cbb3] mb-6">See you in Udaipur</div>
+                <div class="footer-elem font-montserrat text-[10px] md:text-sm tracking-[0.5em] uppercase text-[#d5cbb3] mb-6">See you at Vitthal Rukhmani</div>
                 
                 <div class="footer-elem font-serif text-[36px] md:text-7xl tracking-[0.1em] text-white leading-tight mb-2 uppercase text-shadow-xl font-bold">
                     WE CAN'T WAIT TO
@@ -727,13 +1227,34 @@
                 
                 <div class="footer-elem w-px h-24 bg-gradient-to-b from-[#d5cbb3] to-transparent mx-auto mb-10"></div>
                 
-                <div class="footer-elem font-serif text-xl md:text-3xl tracking-[0.3em] text-white mb-2">14 . 02 . 2026</div>
-                <div class="footer-elem font-montserrat text-[8px] md:text-[10px] tracking-[0.3em] uppercase text-[#d5cbb3]/70">The Beginning of Forever</div>
+                <div class="footer-elem font-serif text-xl md:text-3xl tracking-[0.3em] text-white mb-2">25 &amp; 26 . 11 . 2026</div>
+                <div class="footer-elem font-montserrat text-[8px] md:text-[10px] tracking-[0.3em] uppercase text-[#d5cbb3]/70 mb-4">The Beginning of Forever</div>
+
+                <!-- Go Up Button (Flow positioned with safe spacing) -->
+                <!-- <button class="footer-elem relative z-30 my-4 w-12 h-12 md:w-14 md:h-14 border border-[#d5cbb3]/30 rounded-full flex items-center justify-center text-[#d5cbb3] hover:bg-[#d5cbb3] hover:text-[#1a1a1a] transition-all duration-500 hover:scale-110 shadow-[0_0_20px_rgba(213,203,179,0.15)] group cursor-pointer" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="Back to top">
+                    <i class="fas fa-chevron-up text-sm group-hover:-translate-y-1 transition-transform"></i>
+                </button> -->
+
+                <!-- BRANDING (Seamless Radial Glassmorphism) -->
+                <div class="footer-elem relative z-20 mt-4 w-full max-w-md mx-auto py-6">
+                    <!-- Gradual radial blur background that merges with the image -->
+                    <div class="absolute inset-0 backdrop-blur-md pointer-events-none" style="-webkit-mask-image: radial-gradient(ellipse at center, black 25%, transparent 70%); mask-image: radial-gradient(ellipse at center, black 25%, transparent 70%);"></div>
+                    
+                    <a href="https://inxfinia.com" target="_blank" rel="noopener noreferrer" class="relative z-10 group flex flex-col items-center gap-2 cursor-pointer transition-all duration-300">
+                        <p class="font-montserrat text-[10px] tracking-[0.3em] uppercase text-white/90 group-hover:text-[#d5cbb3] transition-colors duration-300 font-medium flex items-center gap-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                            <span class="w-5 h-[1px] bg-white/40 group-hover:bg-[#d5cbb3]/60 transition-colors"></span>
+                            Lovingly Crafted By
+                            <span class="w-5 h-[1px] bg-white/40 group-hover:bg-[#d5cbb3]/60 transition-colors"></span>
+                        </p>
+                        <div class="transition-transform duration-300 group-hover:scale-105 my-0.5">
+                            <img src="./assets/images/inxfinia-logo.png" alt="inXfinia" class="h-7 md:h-8 object-contain drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] opacity-95 group-hover:opacity-100 transition-opacity">
+                        </div>
+                        <span class="font-montserrat text-[10px] tracking-[0.25em] text-white/70 group-hover:text-white transition-colors uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                            inxfinia.com
+                        </span>
+                    </a>
+                </div>
             </div>
-            
-            <button class="footer-elem absolute bottom-8 w-14 h-14 border border-[#d5cbb3]/30 rounded-full flex items-center justify-center text-[#d5cbb3] hover:bg-[#d5cbb3] hover:text-[#1a1a1a] transition-all duration-500 hover:scale-110 shadow-[0_0_20px_rgba(213,203,179,0.15)] z-20 group" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
-                <i class="fas fa-chevron-up text-sm group-hover:-translate-y-1 transition-transform"></i>
-            </button>
         </div>
     </div>
 
@@ -788,6 +1309,7 @@
                 setTimeout(() => {
                     loader.style.display = 'none';
                     initGSAP(); // Init animations after loader disappears
+                    setTimeout(initScratchCanvas, 500);
                 }, 1000);
             }, 1200);
         });
@@ -820,120 +1342,169 @@
         });
 
         
-        // Scratch Card Logic
-        const canvas = document.getElementById('scratch-canvas');
-        if (canvas) {
-            const ctx = canvas.getContext('2d', { willReadFrequently: true });
-            let isDragging = false;
-            
-            function initScratchCard() {
+        // 4. COUNTDOWN TIMER (Ammar & Mariya Exact Implementation)
+        const targetDate = new Date("Nov 25, 2026 08:00:00").getTime();
+        const countdownInterval = setInterval(() => {
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+
+            if (distance < 0) {
+                clearInterval(countdownInterval);
+                document.getElementById('days').innerText = "00";
+                document.getElementById('hours').innerText = "00";
+                document.getElementById('mins').innerText = "00";
+                document.getElementById('secs').innerText = "00";
+                return;
+            }
+
+            const dEl = document.getElementById('days');
+            const hEl = document.getElementById('hours');
+            const mEl = document.getElementById('mins');
+            const sEl = document.getElementById('secs');
+
+            if (dEl) dEl.innerText = String(Math.floor(distance / (1000 * 60 * 60 * 24))).padStart(2, '0');
+            if (hEl) hEl.innerText = String(Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
+            if (mEl) mEl.innerText = String(Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+            if (sEl) sEl.innerText = String(Math.floor((distance % (1000 * 60)) / 1000)).padStart(2, '0');
+        }, 1000);
+
+        // 5. SCRATCH CARD OVER COUNTDOWN (Ammar & Mariya Exact Implementation)
+        function initScratchCanvas() {
+            const canvas = document.getElementById('scratch-countdown');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let isDrawing = false;
+            let scratchedPixels = 0;
+            let confettiFired = false;
+            let lastPos = null;
+
+            function resizeCanvas() {
                 canvas.width = canvas.offsetWidth;
                 canvas.height = canvas.offsetHeight;
                 
-                // Gold foil gradient
-                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-                gradient.addColorStop(0, '#c8bc9f');
-                gradient.addColorStop(0.5, '#e2dcd0');
-                gradient.addColorStop(1, '#a89973');
-                ctx.fillStyle = gradient;
+                // Fill with gold color overlay
+                ctx.fillStyle = '#D4C5A9';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                // Overlay text
-                ctx.fillStyle = '#2d2d2d';
-                ctx.font = 'italic 20px serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.globalAlpha = 0.6;
-                ctx.fillText('Scratch here with your finger', canvas.width/2, canvas.height/2);
-                ctx.globalAlpha = 1.0;
+                // Add text to canvas
+                ctx.font = "italic 28px 'Playfair Display'";
+                ctx.fillStyle = "#2D2D2D";
+                ctx.textAlign = "center";
+                ctx.fillText("Scratch to Reveal", canvas.width/2, canvas.height/2 - 10);
+                ctx.font = "14px 'Inter'";
+                ctx.fillText("the time left until we say 'I Do'", canvas.width/2, canvas.height/2 + 20);
             }
             
-            // We need to wait for layout
-            setTimeout(initScratchCard, 500);
-            window.addEventListener('resize', initScratchCard);
-            
-            const scratch = (x, y) => {
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.beginPath();
-                ctx.arc(x, y, 25, 0, Math.PI * 2);
-                ctx.fill();
-            };
-            
-            const getMousePos = (e) => {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas); 
+
+            function getMousePos(e) {
                 const rect = canvas.getBoundingClientRect();
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                const clientY = e.clientY || (e.touches && e.touches[0].clientY);
                 return {
                     x: clientX - rect.left,
                     y: clientY - rect.top
                 };
-            };
-
-            canvas.addEventListener('mousedown', () => isDragging = true);
-            canvas.addEventListener('touchstart', (e) => { isDragging = true; });
-            
-            window.addEventListener('mouseup', () => isDragging = false);
-            window.addEventListener('touchend', () => isDragging = false);
-            
-            canvas.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                const pos = getMousePos(e);
-                scratch(pos.x, pos.y);
-            });
-            
-            canvas.addEventListener('touchmove', (e) => {
-                if (!isDragging) return;
-                const pos = getMousePos(e);
-                scratch(pos.x, pos.y);
-            });
-        }
-
-        // Wishes Logic
-        let wishes = [
-            { name: "Rahul & Sneha", message: "Wishing you both a lifetime of immense love, joy, and happiness! Can't wait for the beautiful celebrations.", likes: 12, liked: false },
-            { name: "Aman", message: "Congratulations! So happy for you two.", likes: 4, liked: false }
-        ];
-
-        window.toggleLike = function(index) {
-            wishes[index].liked = !wishes[index].liked;
-            wishes[index].likes += wishes[index].liked ? 1 : -1;
-            renderWishes();
-        };
-
-        function renderWishes() {
-            const container = document.getElementById('comments-container');
-            container.innerHTML = '';
-            wishes.forEach((wish, index) => {
-                const div = document.createElement('div');
-                div.className = "bg-white/60 p-6 rounded-lg border border-[#e2dcd0]/40 shadow-sm relative hover:shadow-md transition-shadow duration-300 text-left";
-                div.innerHTML = `
-                    <i class="fas fa-quote-right absolute top-6 right-6 text-[#d5cbb3]/20 text-3xl"></i>
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="font-serif font-bold text-[#2d2d2d] text-lg">${wish.name}</div>
-                        <button class="flex items-center gap-2 text-[#2d2d2d]/60 hover:text-red-500 transition-colors ${wish.liked ? 'text-red-500' : ''}" onclick="toggleLike(${index})">
-                            <i class="${wish.liked ? 'fas' : 'far'} fa-heart"></i>
-                            <span class="text-xs font-montserrat">${wish.likes}</span>
-                        </button>
-                    </div>
-                    <p class="font-montserrat text-xs md:text-sm text-[#2d2d2d]/80 italic leading-relaxed">"${wish.message}"</p>
-                `;
-                container.appendChild(div);
-            });
-        }
-        
-        renderWishes();
-
-        document.getElementById('submit-wish').addEventListener('click', () => {
-            const name = document.getElementById('wish-name').value;
-            const msg = document.getElementById('wish-msg').value;
-            if(name && msg) {
-                wishes.unshift({ name, message: msg, likes: 0, liked: false });
-                document.getElementById('wish-name').value = '';
-                document.getElementById('wish-msg').value = '';
-                renderWishes();
-                confetti({ particleCount: 100, spread: 70, origin: { y: 0.8 }, colors: ['#ff0000', '#d5cbb3'] });
             }
-        });
+
+            function scratch(e) {
+                if (!isDrawing) return;
+                e.preventDefault(); 
+                const pos = getMousePos(e);
+                
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.beginPath();
+                
+                if (lastPos) {
+                    ctx.moveTo(lastPos.x, lastPos.y);
+                    ctx.lineTo(pos.x, pos.y);
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.lineWidth = 90;
+                    ctx.stroke();
+                } else {
+                    ctx.arc(pos.x, pos.y, 45, 0, Math.PI * 2, false);
+                    ctx.fill();
+                }
+                lastPos = pos;
+
+                scratchedPixels++;
+                
+                // Check completion percentage every 15 scratches to save performance
+                if (scratchedPixels % 15 === 0 && !confettiFired) {
+                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    let transparentCount = 0;
+                    for (let i = 3; i < imgData.data.length; i += 4) {
+                        if (imgData.data[i] === 0) transparentCount++;
+                    }
+                    const percentScratched = (transparentCount / (canvas.width * canvas.height)) * 100;
+                    
+                    if (percentScratched > 50) {
+                        const calBtn = document.getElementById('save-the-date-btn');
+                        if (calBtn) {
+                            calBtn.classList.remove('opacity-0', 'pointer-events-none');
+                        }
+                        
+                        // Fire celebration confetti once
+                        confettiFired = true;
+                        const duration = 3000;
+                        const animationEnd = Date.now() + duration;
+                        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+                        const interval = setInterval(function() {
+                            const timeLeft = animationEnd - Date.now();
+                            if (timeLeft <= 0) return clearInterval(interval);
+                            const particleCount = 50 * (timeLeft / duration);
+                            confetti(Object.assign({}, defaults, { particleCount, origin: { x: Math.random(), y: Math.random() - 0.2 } }));
+                        }, 250);
+                    }
+                }
+            }
+
+            canvas.addEventListener('mousedown', (e) => {
+                isDrawing = true;
+                lastPos = getMousePos(e);
+                scratch(e);
+            });
+            canvas.addEventListener('mousemove', scratch);
+            window.addEventListener('mouseup', () => {
+                isDrawing = false;
+                lastPos = null;
+            });
+
+            canvas.addEventListener('touchstart', (e) => {
+                isDrawing = true;
+                lastPos = getMousePos(e);
+                scratch(e);
+            });
+            canvas.addEventListener('touchmove', scratch, { passive: false });
+            window.addEventListener('touchend', () => {
+                isDrawing = false;
+                lastPos = null;
+            });
+        }
+        setTimeout(initScratchCanvas, 500);
+
+        window.toggleLike = function(btn) {
+            const icon = btn.querySelector('i');
+            const countSpan = btn.querySelector('.like-count');
+            let count = parseInt(countSpan.innerText) || 0;
+            
+            if (icon.classList.contains('far')) {
+                icon.classList.remove('far');
+                icon.classList.add('fas', 'text-red-500');
+                btn.classList.remove('text-[#2d2d2d]/40', 'text-gray-400');
+                btn.classList.add('text-red-500');
+                count++;
+            } else {
+                icon.classList.remove('fas', 'text-red-500');
+                icon.classList.add('far');
+                btn.classList.remove('text-red-500');
+                btn.classList.add('text-[#2d2d2d]/40');
+                count = Math.max(0, count - 1);
+            }
+            countSpan.innerText = count;
+        };
 
         function initGSAP() {
             gsap.registerPlugin(ScrollTrigger);
@@ -1041,5 +1612,149 @@
     });
 </script>
 
+    <!-- Code Protection & Anti-Inspect Security Suite -->
+    <script>
+        (function() {
+            'use strict';
+
+            // 1. Anti-Iframe / Clickjacking Protection
+            if (window.top !== window.self) {
+                try {
+                    window.top.location = window.self.location;
+                } catch (e) {
+                    window.location = "about:blank";
+                }
+            }
+
+            // 2. Neutralize Browser Console Output
+            const noop = function() {};
+            const methods = ['log', 'debug', 'info', 'warn', 'error', 'table', 'dir', 'trace', 'group', 'groupEnd', 'time', 'timeEnd', 'profile'];
+            for (let i = 0; i < methods.length; i++) {
+                try {
+                    window.console[methods[i]] = noop;
+                } catch (e) {}
+            }
+            setInterval(function() {
+                try {
+                    console.clear();
+                } catch (e) {}
+            }, 1000);
+
+            // 3. Disable Context Menu (Right-Click) Globally
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }, true);
+
+            // 4. Block Keyboard Shortcuts (DevTools, Source, Print, Save, Select-All)
+            window.addEventListener('keydown', function(e) {
+                const key = e.key ? e.key.toLowerCase() : '';
+                const code = e.keyCode || e.which;
+                const isCtrlOrMeta = e.ctrlKey || e.metaKey;
+
+                // F12
+                if (code === 123 || key === 'f12') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+
+                // Ctrl/Cmd + Shift + (I, J, C, K) [DevTools shortcuts]
+                if (isCtrlOrMeta && e.shiftKey && (code === 73 || code === 74 || code === 67 || code === 75 || key === 'i' || key === 'j' || key === 'c' || key === 'k')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+
+                // Mac Option + Cmd + (I, J, C)
+                if (e.metaKey && e.altKey && (code === 73 || code === 74 || code === 67 || key === 'i' || key === 'j' || key === 'c')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+
+                // Ctrl/Cmd + U (View Source)
+                if (isCtrlOrMeta && (code === 85 || key === 'u')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+
+                // Ctrl/Cmd + S (Save Page)
+                if (isCtrlOrMeta && (code === 83 || key === 's')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+
+                // Ctrl/Cmd + P (Print / Save as PDF)
+                if (isCtrlOrMeta && (code === 80 || key === 'p')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+
+                // Ctrl/Cmd + A (Select All - allowed only inside inputs/textareas)
+                if (isCtrlOrMeta && (code === 65 || key === 'a')) {
+                    const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+                    if (tag !== 'input' && tag !== 'textarea') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
+                }
+            }, true);
+
+            // 5. Block Dragging & Selection on Non-Input Elements
+            document.addEventListener('dragstart', function(e) {
+                e.preventDefault();
+                return false;
+            }, true);
+
+            document.addEventListener('selectstart', function(e) {
+                const tag = e.target ? e.target.tagName.toLowerCase() : '';
+                if (tag !== 'input' && tag !== 'textarea') {
+                    e.preventDefault();
+                    return false;
+                }
+            }, true);
+
+            document.addEventListener('copy', function(e) {
+                const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+                if (tag !== 'input' && tag !== 'textarea') {
+                    e.preventDefault();
+                    return false;
+                }
+            }, true);
+
+            // 6. Anti-DevTools Timing & Debugger Defense
+            function devtoolsDefense() {
+                const t0 = performance.now();
+                (function() {
+                    return false;
+                })['constructor']('debugger')();
+                const t1 = performance.now();
+                // If DevTools is open, debugger will pause execution (>100ms)
+                if (t1 - t0 > 100) {
+                    try {
+                        window.location.reload();
+                    } catch (e) {}
+                }
+            }
+            setInterval(devtoolsDefense, 800);
+
+            // 7. Window Geometry DevTools Detection
+            window.addEventListener('resize', function() {
+                const threshold = 160;
+                const widthDiff = window.outerWidth - window.innerWidth > threshold;
+                const heightDiff = window.outerHeight - window.innerHeight > threshold;
+                if (widthDiff || heightDiff) {
+                    // Docked DevTools detected
+                    devtoolsDefense();
+                }
+            });
+        })();
+    </script>
 </body>
 </html>
